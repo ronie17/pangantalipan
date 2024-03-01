@@ -1,66 +1,90 @@
 <?php
-session_start();    
+session_start();
 include("config.php");
 
-if(isset($_POST["registerButton"])){
-
+if(isset($_POST['submit'])) {
+    // Update operation
+    $id = $_POST['id'];
+    $studentId = $_POST['studentId'];
+    $firstName = $_POST['firstName'];
+    $middleName = $_POST['middleName'];
+    $lastName = $_POST['lastName'];
+    $dateOfBirth = $_POST['dateOfBirth'];
     $email = $_POST['email'];
-    $password = $_POST['password'];
-    $repassword = $_POST['repassword'];
-    $fname = $_POST['fname'];
-    $mname = isset($_POST['mname']) ? $_POST['mname'] : '' ;
-    $lname = $_POST['lname'];
 
-    $check_email_query = "SELECT * FROM `user` WHERE `email` = '$email'";
-    $email_result = mysqli_query($con,$check_email_query);
-    $email_count = mysqli_fetch_array($email_result)[0];
+    // Assuming you're using prepared statements to prevent SQL injection
+    $query = "UPDATE student_information SET student_id=?, fname=?, mname=?, lname=?, birthday=?, email_address=? WHERE id=?";
+    $stmt = mysqli_prepare($con, $query);
+    mysqli_stmt_bind_param($stmt, "ssssssi", $studentId, $firstName, $middleName, $lastName, $dateOfBirth, $email, $id);
+    mysqli_stmt_execute($stmt);
 
-    if($email_count > 0){
-        $_SESSION['status'] = "Email address already taken";
-        $_SESSION['status_code'] = "error";
-        header("Location: register.php");
-        exit();
-    }
-
-    if ($password !== $repassword){
-        $_SESSION['status'] = "Password does not match";
-        $_SESSION['status_code'] = "error";
-        header("Location: register.php");
-        exit();
-    }
-
-
-    $query = "INSERT INTO `user`(`email`, `password`, `fname`, `mname`, `lname`) VALUES ('$email','$password','$fname','$mname','$lname')";
-    $query_result = mysqli_query( $con, $query );
-
-    if($query_result){
-        $_SESSION['status'] = "Registration Sucess!";
+    if(mysqli_affected_rows($con) > 0) {
+        $_SESSION['status'] = "Student data updated successfully.";
         $_SESSION['status_code'] = "success";
-        header("Location: login.php");
-        exit();
-    }
-}
-
-
-if(isset($_POST["loginButton"])){
-
-    $email = $_POST['email'];
-    $password = $_POST['password'];
-
-    $login_query = "SELECT `id`, `email`, `password`, `fname`, `mname`, `lname` FROM `user` WHERE `email` = '$email' AND `password` = '$password' LIMIT 1 ";
-    $login_result = mysqli_query($con, $login_query);
-
-    if(mysqli_num_rows($login_result) == 1){
-            $_SESSION['status'] = "Welcome!";
-            $_SESSION['status_code'] = "success";
-            header("Location: index.php");
-            exit();
-    }else{
-        $_SESSION['status'] = "Invalid Username/Password";
+    } else {
+        $_SESSION['status'] = "Error: Failed to update student data.";
         $_SESSION['status_code'] = "error";
-        header("Location: login.php");
-        exit();
     }
-}
 
+    mysqli_stmt_close($stmt);
+    mysqli_close($con);
+    header("Location: index.php");
+    exit();
+} elseif(isset($_POST['insert'])) { 
+    // Insert operation
+    $studentId = $_POST['studentId'];
+    $firstName = $_POST['firstName'];
+    $middleName = $_POST['middleName'];
+    $lastName = $_POST['lastName'];
+    $address = $_POST['address'];
+    $dateOfBirth = $_POST['birthday'];
+    $email = $_POST['email'];
+
+    // Assuming you're using prepared statements to prevent SQL injection
+    $query = "INSERT INTO student_information (student_id, fname, mname, lname, address, birthday, email_address) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    $stmt = mysqli_prepare($con, $query);
+    mysqli_stmt_bind_param($stmt, "sssssss", $studentId, $firstName, $middleName, $lastName, $address, $dateOfBirth, $email);
+    mysqli_stmt_execute($stmt);
+
+    if(mysqli_affected_rows($con) > 0) {
+        $_SESSION['status'] = "New student added successfully.";
+        $_SESSION['status_code'] = "success";
+    } else {
+        $_SESSION['status'] = "Error: Failed to add new student.";
+        $_SESSION['status_code'] = "error";
+    }
+
+    mysqli_stmt_close($stmt);
+    mysqli_close($con);
+    header("Location: index.php");
+    exit();
+} elseif(isset($_GET['delete_id'])) { 
+    // Delete operation
+    $id = $_GET['delete_id'];
+
+    // Assuming you're using prepared statements to prevent SQL injection
+    $query = "DELETE FROM student_information WHERE id=?";
+    $stmt = mysqli_prepare($con, $query);
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_execute($stmt);
+
+    if(mysqli_affected_rows($con) > 0) {
+        $_SESSION['status'] = "Student data deleted successfully.";
+        $_SESSION['status_code'] = "success";
+    } else {
+        $_SESSION['status'] = "Error: Failed to delete student data.";
+        $_SESSION['status_code'] = "error";
+    }
+
+    mysqli_stmt_close($stmt);
+    mysqli_close($con);
+    header("Location: index.php");
+    exit();
+} else {
+    // Invalid operation
+    $_SESSION['status'] = "Error: Invalid operation.";
+    $_SESSION['status_code'] = "error";
+    header("Location: index.php");
+    exit();
+}
 ?>
